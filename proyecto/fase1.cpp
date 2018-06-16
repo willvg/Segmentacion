@@ -20,13 +20,18 @@
 #include <fstream> 
 
 /**
- * Esta funcion se encarga de detectar los puntos de interesa en la imagen original y en la mascara
+ * Esta funcion se encarga de detectar los puntos de interes en la imagen original y en la mascara
  * @param image      imagen de entrada
  * @param imageMask  mascara
  * @param keypoints1 vector de puntos de la imagen de entrada
  * @param keypoints2 vector de puntos de la mascara
  */
-void detectedPoints(cv::Mat image, cv::Mat imageMask, std::vector<cv::KeyPoint>& keypoints1, std::vector<cv::KeyPoint>& keypoints2){
+void detectedPoints(
+	cv::Mat 		   image, 
+	cv::Mat 		   imageMask, 
+	std::vector<cv::KeyPoint>& keypoints1, 
+	std::vector<cv::KeyPoint>& keypoints2)
+{
     cv::SurfFeatureDetector detector(2000);
 
     //detecta los puntos de La dos imagenes
@@ -46,7 +51,11 @@ void detectedPoints(cv::Mat image, cv::Mat imageMask, std::vector<cv::KeyPoint>&
  * @param keypoints   vector de puntoa de interes 
  * @param descriptors el descriptore
  */
-void createDescriptor(cv::Mat image, std::vector<cv::KeyPoint> keypoints ,cv::Mat& descriptors){
+void createDescriptor(
+	cv::Mat 		  image, 
+	std::vector<cv::KeyPoint> keypoints,
+	cv::Mat& 		  descriptors)
+{
     // obtine los descriptores de las dos imagenes
     cv::SurfDescriptorExtractor extractor;
     extractor.compute(image, keypoints, descriptors);
@@ -61,8 +70,14 @@ void createDescriptor(cv::Mat image, std::vector<cv::KeyPoint> keypoints ,cv::Ma
  * @param min_dist     minima distacia que hay entre los puntos
  * @param good_matches vector con las mejores coincidencias
  */
-void createFLAN(cv::Mat descriptors1, cv::Mat descriptors2, std::vector< cv::DMatch >& matches, 
-                double& max_dist, double& min_dist, std::vector< cv::DMatch >& good_matches ){
+void createFLAN(
+	cv::Mat 		   descriptors1, 
+	cv::Mat 		   descriptors2,
+	std::vector< cv::DMatch >& matches, 
+        double& 		   max_dist, 
+	double& 		   min_dist, 
+	std::vector< cv::DMatch >& good_matches)
+{
 
     cv::FlannBasedMatcher matcher;
 
@@ -89,7 +104,11 @@ void createFLAN(cv::Mat descriptors1, cv::Mat descriptors2, std::vector< cv::DMa
  * @param contours  vector de contorno
  * @param hierarchy 
  */
-void findContoursImage(cv::Mat image, std::vector<std::vector<cv::Point> >& contours, std::vector<cv::Vec4i>& hierarchy){
+void findContoursImage(
+	cv::Mat 			      image, 
+	std::vector<std::vector<cv::Point> >& contours, 
+	std::vector<cv::Vec4i>& 	      hierarchy)
+{
     cv::Canny(image, image, 100, 200, 3);
     cv::RNG rng(12345);
     cv::findContours( image, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
@@ -101,17 +120,25 @@ void findContoursImage(cv::Mat image, std::vector<std::vector<cv::Point> >& cont
  * @param path        path donde estan las direcciones
  * @param directiones vector con las direciones
  */
-void readPathTrain( std::string path, std::vector<std::string>& directiones) {
+int readPathTrain(
+	std::string 		  path, 
+	std::vector<std::string>& directiones) 
+{
     std::ifstream file;
     std::string line;
-
+    
     file.open(path.c_str(), std::ifstream::in);
+    if(!file.is_open()){
+	std::cout << "Could not open file of images path" << std::endl;
+	return 1;	
+    }
     
     //Leer el archivo hasta que termine.
     while (!file.eof()) {
         getline(file, line); //Lee la linea
         directiones.push_back(line); //agrega la linea al vector
     }
+    return 0;
     
 }
 
@@ -121,8 +148,11 @@ void readPathTrain( std::string path, std::vector<std::string>& directiones) {
  * @param images      vector con las imagenes originales
  * @param imagesMask  vector con las imagenes de mascara
  */
-void readImage(std::vector<std::string> directiones, std::vector<cv::Mat>& images, std::vector<cv::Mat>& imagesMask){
-    
+void readImage(
+	std::vector<std::string> directiones, 
+	std::vector<cv::Mat>& 	 images, 
+	std::vector<cv::Mat>&    imagesMask)
+{    
     bool flag = true;
     for (int i = 0; i < directiones.size()-2; i++)
     {
@@ -145,14 +175,37 @@ void readImage(std::vector<std::string> directiones, std::vector<cv::Mat>& image
     }
 }
 
+void printResults(
+	cv::Mat&		   image,
+	std::vector<cv::KeyPoint>& image_detected_keypoints)
+{
+	int i;
+	int contIn=0;
+	int contOut=0;
+	for (i=0; i<vector.size(); i++){
+		cv::KeyPoint keyPoint = vector.at(i);
+		int pixel = image.at<uchar>(keypoint.pt().y, keypoint.pt().x);
+		if (pixel>0){
+			contIn++;
+		}
+		else{
+			contOut++;
+		}
+	}
+	std::cout << "Asserted points: " << contIn << std::endl;  
+	std::cout << "Wrong points: " << contOut << std::endl;  
+}
+
 
 int main(int argc, char** argv){
 
-    std::string path = "/media/will/Data/Database_of_Monarch_Butterflies/pathTrain.txt";
+    std::string path = "../../../Database_of_Monarch_Butterflies/pathTrain.txt";
     std::vector<std::string> directiones;
 
     //lee el path donde estan las direciones.
-    readPathTrain(path,directiones);
+    if(readPathTrain(path,directiones)){
+	return 0;
+    }
 
     //for (int i = 0; i < directiones.size(); ++i)
     //{
@@ -174,7 +227,7 @@ int main(int argc, char** argv){
         //*************************************************
         //Detectar los puntos
         //Vector para los puntos de la imagen original y la mascara
-        /*std::vector<cv::KeyPoint> keypoints1, keypoints2;
+        /*std::vector<cv::KeyPoint> keypoints1, keypoints2; coordenada x e y de los puntos mariposa
         //llamar a la funcion de detectar los puntos
         detectedPoints(image,imageMask, keypoints1, keypoints2);
         
@@ -251,17 +304,8 @@ int main(int argc, char** argv){
         //*************************************************
         //Para la segmentacion de partes
         
-       cv::Mat src = image;
-       
-       for( int x = 0; x < src.rows; x++ ) {
-          for( int y = 0; y < src.cols; y++ ) {
-              if ( src.at<cv::Vec3b>(x, y) == cv::Vec3b(255,255,255) ) {
-                src.at<cv::Vec3b>(x, y)[0] = 0;
-                src.at<cv::Vec3b>(x, y)[1] = 0;
-                src.at<cv::Vec3b>(x, y)[2] = 0;
-              }
-            }
-        }
+       cv::Mat src = imageMask;
+
         // Show output image
         imshow("Black Background Image", src);
         // Create a kernel that we will use for accuting/sharpening our image
@@ -280,11 +324,12 @@ int main(int argc, char** argv){
         cv::filter2D(sharp, imgLaplacian, CV_32F, kernel);
         src.convertTo(sharp, CV_32F);
         cv::Mat imgResult = sharp - imgLaplacian;
+	
         // convert back to 8bits gray scale
         imgResult.convertTo(imgResult, CV_8UC3);
         imgLaplacian.convertTo(imgLaplacian, CV_8UC3);
         // imshow( "Laplace Filtered Image", imgLaplacian );
-        //cv::imshow( "New Sharped Image", imgResult );
+        cv::imshow( "New Sharped Image", imgResult );
         src = imgResult; // copy back
         // Create binary image from source image
         cv::Mat bw;
@@ -293,7 +338,9 @@ int main(int argc, char** argv){
         cv::imshow("Binary Image", bw);
 
         // Perform the distance transform algorithm
-        /*cv::Mat dist;
+	
+	//*****NO FUNCIONA DESDE AQUI
+        cv::Mat dist;
         cv::distanceTransform(bw, dist, CV_DIST_L2, 3);
         // Normalize the distance image for range = {0.0, 1.0}
         // so we can visualize and threshold it
@@ -320,7 +367,7 @@ int main(int argc, char** argv){
             cv::drawContours(markers, contours, static_cast<int>(i), cv::Scalar::all(static_cast<int>(i)+1), -1);
         // Draw the background marker
         cv::circle(markers, cv::Point(5,5), 3, CV_RGB(255,255,255), -1);
-        cv::imshow("Markers", markers*10000);
+        //cv::imshow("Markers", markers*10000);
         // Perform the watershed algorithm
         cv::watershed(src, markers);
         cv::Mat mark = cv::Mat::zeros(markers.size(), CV_8UC1);
@@ -353,8 +400,8 @@ int main(int argc, char** argv){
             }
         }
         // Visualize the final image
-    imshow("Final Result", dst);
-        */
+        imshow("Final Result", dst);
+	//****No FUNCIONA HASTA AQUI
         
         cv::waitKey(2000);
     }

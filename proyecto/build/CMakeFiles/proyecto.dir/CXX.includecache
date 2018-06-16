@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/fase1.cpp
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/fase1.cpp
 opencv2/core/core.hpp
 -
 opencv2/nonfree/features2d.hpp
@@ -28,13 +28,13 @@ chrono
 opencv2/opencv.hpp
 -
 opencv2/core/core.hpp
-/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/opencv2/core/core.hpp
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/opencv2/core/core.hpp
 opencv2/features2d/features2d.hpp
-/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/opencv2/features2d/features2d.hpp
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/opencv2/features2d/features2d.hpp
 opencv2/highgui/highgui.hpp
-/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/opencv2/highgui/highgui.hpp
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/opencv2/highgui/highgui.hpp
 opencv2/nonfree/nonfree.hpp
-/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/opencv2/nonfree/nonfree.hpp
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/opencv2/nonfree/nonfree.hpp
 iostream
 -
 stdio.h

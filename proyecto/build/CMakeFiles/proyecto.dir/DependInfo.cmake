@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/fase1.cpp" "/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/build/CMakeFiles/proyecto.dir/fase1.cpp.o"
+  "/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/fase1.cpp" "/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/proyecto.dir/fase1.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

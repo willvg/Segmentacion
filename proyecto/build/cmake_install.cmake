@@ -1,8 +1,8 @@
-# Install script for directory: /home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto
+# Install script for directory: /home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/build")
+  set(CMAKE_INSTALL_PREFIX "/usr/local")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -39,7 +39,7 @@ if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/proyecto"
          RPATH "")
   endif()
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/build/proyecto")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/proyecto")
   if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/proyecto" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/proyecto")
     file(RPATH_CHANGE
@@ -60,5 +60,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/will/Documentos/Procesamiento_de_imagenes/mariposas/proyecto/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

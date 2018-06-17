@@ -209,7 +209,7 @@ void meanShiftSegmentation(
         maxPyrLevel = 1;
 
 	pyrMeanShiftFiltering(image, segmented_image, spatialRad, colorRad, maxPyrLevel );
-	floodFillPostprocess( segmented_image, cv::Scalar::all(2) );
+	floodFillPostprocess( segmented_image, cv::Scalar::all(12) );
 }
 
 int vote(
@@ -219,7 +219,7 @@ int vote(
 	std::vector<Region>& regions)
 {
 	for(int i=0; i<regions.size(); i++){
-		if (regions.at(i).pixel_valueR==pixel_valueR && regions.at(i).pixel_valueG==pixel_valueG && regions.at(i).pixel_valueB==pixel_valueB ){
+		if ((regions.at(i).pixel_valueR==pixel_valueR) && (regions.at(i).pixel_valueG==pixel_valueG) && (regions.at(i).pixel_valueB==pixel_valueB) ){
 			regions.at(i).votes+=1;
 			return 0;
 		}
@@ -233,7 +233,7 @@ int getVotes(
 	int pixel_valueB,
 	std::vector<Region>& regions){
 	for(int i=0; i<regions.size(); i++){
-		if (regions.at(i).pixel_valueR==pixel_valueR && regions.at(i).pixel_valueG==pixel_valueG && regions.at(i).pixel_valueB==pixel_valueB ){
+		if ((regions.at(i).pixel_valueR==pixel_valueR) && (regions.at(i).pixel_valueG==pixel_valueG) && (regions.at(i).pixel_valueB==pixel_valueB) ){
 			return regions.at(i).votes;
 		}
 	}
@@ -265,9 +265,9 @@ void drawResults(
 	std::vector<Region> regions;
 	for(i=0; i<image_detected_keypoints.size(); i++){
 		cv::KeyPoint keypoint = image_detected_keypoints.at(i);
-		int pixel_valueR = segmented_image.at<uchar>(keypoint.pt.y, keypoint.pt.x);
-		int pixel_valueG = segmented_image.at<uchar>(keypoint.pt.y, keypoint.pt.x+1);
-		int pixel_valueB = segmented_image.at<uchar>(keypoint.pt.y, keypoint.pt.x+2);
+		int pixel_valueB = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[0];
+		int pixel_valueG = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[1];
+		int pixel_valueR = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[2];
 		if (vote(pixel_valueR, pixel_valueG, pixel_valueB,regions)){
 			Region region;
 			region.pixel_valueR = pixel_valueR;
@@ -293,24 +293,34 @@ void drawResults(
 
 	unsigned char *input = (unsigned char*)(result_image.data);
 	unsigned char *inputSegmented = (unsigned char*)(segmented_image.data);
-	for(int j = 0;j < (result_image.rows*3-3);j++){
-    		for(int i = 0;i < result_image.cols;i+=3){
-			int pixel_valueR = inputSegmented[segmented_image.cols * j + i ];
-			int pixel_valueG = inputSegmented[segmented_image.cols * j + i +1];
-			int pixel_valueB = inputSegmented[segmented_image.cols * j + i +2];
+	for(int j = 0;j <result_image.rows;j++){
+    		for(int i = 0;i < result_image.cols;i++){
+			int pixel_valueB = segmented_image.at<cv::Vec3b>(cv::Point(i, j))[0];
+			int pixel_valueG = segmented_image.at<cv::Vec3b>(cv::Point(i, j))[1];
+			int pixel_valueR = segmented_image.at<cv::Vec3b>(cv::Point(i, j))[2];
 			int votes = getVotes(pixel_valueR, pixel_valueG,pixel_valueB,regions);
 			if (votes ==0){	
-				input[result_image.cols * j + i ] =(unsigned char)0;
-				input[result_image.cols * j + i + 1]=(unsigned char)0;
-				input[result_image.cols * j + i + 2]=(unsigned char)0;
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[0] =(unsigned char)0;
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[1] =(unsigned char)0;
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[2] =(unsigned char)0;
 			}
 			else{
-				int valor =  (int)((((float)votes-(float)minVotes-1.0)/((float)maxVotes-(float)minVotes))*255.0);
-				input[result_image.cols * j + i ] =(unsigned char)valor;
-				input[result_image.cols * j + i + 1]=(unsigned char)valor;
-				input[result_image.cols * j + i + 2]=(unsigned char)valor;
+				int valor =  (int)((((float)votes-(float)minVotes)/((float)maxVotes-(float)minVotes))*150.0);
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[0] =(unsigned char)(valor+100);
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[1]= (unsigned char)(valor+100);
+				result_image.at<cv::Vec3b>(cv::Point(i, j))[2]= (unsigned char)(valor+100);
 			}
     		}
+	}
+
+	for(i=0; i<image_detected_keypoints.size(); i++){
+		cv::KeyPoint keypoint = image_detected_keypoints.at(i);
+		int pixel_valueB = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[0];
+		int pixel_valueG = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[1];
+		int pixel_valueR = segmented_image.at<cv::Vec3b>(cv::Point(keypoint.pt.x, keypoint.pt.y))[2];
+		cv::Rect rect(keypoint.pt.x, keypoint.pt.y, 5, 5);
+		cv::rectangle(result_image, rect, cv::Scalar(255,0,0),1,8,0);
+				
 	}
 }
 

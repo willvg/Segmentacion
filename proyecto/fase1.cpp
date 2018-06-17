@@ -27,7 +27,7 @@
  * @param keypoints2 vector de puntos de la mascara
  */
 void detectedPoints(cv::Mat image, cv::Mat imageMask, std::vector<cv::KeyPoint>& keypoints1, std::vector<cv::KeyPoint>& keypoints2){
-    cv::SurfFeatureDetector detector(2000);
+    cv::SurfFeatureDetector detector(5000);
 
     //detecta los puntos de La dos imagenes
     detector.detect(image, keypoints1);
@@ -37,7 +37,25 @@ void detectedPoints(cv::Mat image, cv::Mat imageMask, std::vector<cv::KeyPoint>&
     cv::Mat img_keypoints_1;
     cv::drawKeypoints( image, keypoints1, img_keypoints_1, cv::Scalar::all(-1), 0); //DrawMatchesFlags::DEFAULT
 
-    cv::imshow("Puntos de la imagen", img_keypoints_1 );
+    //cv::imshow("Puntos de la imagen", img_keypoints_1 );
+}
+
+/**
+ * Esta funcion se encarga de detectar los puntos de interesa en la imagen de entrada
+ * @param image      imagen de entrada
+ * @param keypoints1 vector de puntos de la imagen de entrada
+ */
+void detectedPoint(cv::Mat image, std::vector<cv::KeyPoint>& keypoints1){
+    cv::SurfFeatureDetector detector(5000);
+
+    //detecta los puntos de La dos imagenes
+    detector.detect(image, keypoints1);
+
+    //objetos para visualizar los puntos en la imagen
+    cv::Mat img_keypoints_1;
+    cv::drawKeypoints( image, keypoints1, img_keypoints_1, cv::Scalar::all(-1), 0); //DrawMatchesFlags::DEFAULT
+
+    //cv::imshow("Puntos de la imagen", img_keypoints_1 );
 }
 
 /**
@@ -62,7 +80,8 @@ void createDescriptor(cv::Mat image, std::vector<cv::KeyPoint> keypoints ,cv::Ma
  * @param good_matches vector con las mejores coincidencias
  */
 void createFLAN(cv::Mat descriptors1, cv::Mat descriptors2, std::vector< cv::DMatch >& matches, 
-                double& max_dist, double& min_dist, std::vector< cv::DMatch >& good_matches ){
+                double& max_dist, double& min_dist, std::vector< cv::DMatch >& good_matches,
+                std::vector< cv::DMatch >& bad_matches ){
 
     cv::FlannBasedMatcher matcher;
 
@@ -78,10 +97,16 @@ void createFLAN(cv::Mat descriptors1, cv::Mat descriptors2, std::vector< cv::DMa
 
     //obtengo las coincidencias que realmente realizan los maches cumpliendo entre el rango establecido
     for( int i = 0; i < descriptors1.rows; i++ )
-    { if( matches[i].distance <= cv::max(2*min_dist, 0.002) )
-      { good_matches.push_back( matches[i]); }
+    { 
+      if( matches[i].distance <= cv::max(2*min_dist, 0.002) ){ 
+        good_matches.push_back( matches[i]); 
+      }
+      else{
+        bad_matches.push_back( matches[i]); 
+      }
     }
 }
+
 
 /**
  * encuentra el contorno y lo pinta con respecto a la imagen original
@@ -145,8 +170,20 @@ void readImage(std::vector<std::string> directiones, std::vector<cv::Mat>& image
     }
 }
 
-
-int main(int argc, char** argv){
+/**
+ * Metodo encargado de realizar el entrenamiento
+ * @param vectorsMaxDistance vector con todas las distancias maximas 
+ * @param vectorsMinDistance vector con todas las distancias minimas
+ * @param vectorsGoodMatches vector con todos los puntos que corresponden a una mariposa
+ * @param vectorsBadMatches  vector con todos los puntos que no corresponden a una mariposa 
+ */
+void train(
+  std::vector< double > & vectorsMaxDistance,
+  std::vector< double > & vectorsMinDistance,
+  std::vector< cv::Mat > & vectorsDescriptors,
+  std::vector< std::vector< cv::DMatch > > & vectorsGoodMatches,
+  std::vector< std::vector< cv::DMatch > > & vectorsBadMatches
+  ){
 
     std::string path = "/media/will/Data/Database_of_Monarch_Butterflies/pathTrain.txt";
     std::vector<std::string> directiones;
@@ -158,6 +195,8 @@ int main(int argc, char** argv){
     //{
       //std::cout << directiones[i] << "\n";
     //}
+    //
+    //
 
     std::vector<cv::Mat> images; 
     std::vector<cv::Mat> imagesMask;
@@ -171,27 +210,35 @@ int main(int argc, char** argv){
         cv::Mat imageMask = imagesMask[i];
         //************************************************
         //************************************************
-        //*************************************************
+        //************************************************
         //Detectar los puntos
         //Vector para los puntos de la imagen original y la mascara
-        /*std::vector<cv::KeyPoint> keypoints1, keypoints2;
+        std::vector<cv::KeyPoint> keypoints1, keypoints2;
         //llamar a la funcion de detectar los puntos
         detectedPoints(image,imageMask, keypoints1, keypoints2);
         
-        
         //************************************************
         //************************************************
-        //*************************************************
+        //************************************************
         //Descriptores
         //llamar a la funcion de descriptores.
         cv::Mat descriptors1, descriptors2;
         createDescriptor(image, keypoints1, descriptors1);
         createDescriptor(imageMask, keypoints2, descriptors2);
         
+        vectorsDescriptors.push_back(descriptors2);
+        /*for (int i = 0; i < keypoints1.size(); ++i)
+        {
+            float* descPtr = descriptors1.ptr<float>(i);
+            for (int j = 0; j < descriptors1.cols; j++)
+              std::cout  << *descPtr++ << " ";
 
+            std::cout << "***********************\n";
+        }*/
+        
         //************************************************
         //************************************************
-        //*************************************************
+        //************************************************
         //FLAN y descriptor
         //vector con las coincidencias 
         std::vector< cv::DMatch > matches;
@@ -199,10 +246,17 @@ int main(int argc, char** argv){
         
         //vector con los maches que realmente conincidieron
         std::vector< cv::DMatch > good_matches;
-        createFLAN(descriptors1, descriptors2, matches,max_dist, min_dist, good_matches);
+        std::vector< cv::DMatch > bad_matches;
+        createFLAN(descriptors1, descriptors2, matches,max_dist, min_dist, good_matches, bad_matches);
 
         printf("-- Maxima distancia : %f \n", max_dist );
         printf("-- Minima dist : %f \n", min_dist );
+
+        vectorsMaxDistance.push_back(max_dist);
+        vectorsMinDistance.push_back(min_dist);
+
+        vectorsGoodMatches.push_back(good_matches);
+        vectorsBadMatches.push_back(bad_matches);
 
         //dibuja las coincidencias
         cv::Mat img_matches;
@@ -211,17 +265,17 @@ int main(int argc, char** argv){
                      std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
         //mustra las conincidencias
-        cv::imshow( "Coincidencias que cumplen", img_matches );
+        //cv::imshow( "Coincidencias que cumplen", img_matches );
 
-        for( int i = 0; i < (int)good_matches.size(); i++ )
-        { printf( "-- G [%d] Puntos de la imagen: %d  -- Puntos de la mascara: %d -- Distancia: %f \n", 
-          i, good_matches[i].queryIdx, good_matches[i].trainIdx, good_matches[i].distance); }
+        //for( int i = 0; i < (int)good_matches.size(); i++ )
+        //{ printf( "-- G [%d] Puntos de la imagen: %d  -- Puntos de la mascara: %d -- Distancia: %f \n", 
+        //  i, good_matches[i].queryIdx, good_matches[i].trainIdx, good_matches[i].distance); }
         
         //************************************************
         //************************************************
-        //*************************************************
+        //************************************************
         //Para encontrar los contornos
-        cv::Mat gray=image;
+        /*cv::Mat gray=image;
         // vector de los contornos   
         std::vector<std::vector<cv::Point> > contours;
             std::vector<cv::Vec4i> hierarchy;
@@ -234,34 +288,255 @@ int main(int argc, char** argv){
         for( int i = 0; i< contours.size(); i++ )
         {
             cv::Scalar color = cv::Scalar( 255, 255, 255 );
-
-
-
             cv::drawContours( drawing, contours, i, color, 1, 8, hierarchy, 0, cv::Point() );
-        }     
+        }*/     
      
-        cv::imshow( "Resultado del contorno", drawing );
+        //cv::imshow( "Resultado del contorno", drawing );
         
         std::cout <<  descriptors1.rows << " " << descriptors1.cols<<"\n" ;
-        */
+        
+        cv::waitKey(2000);
+    }
+}
+
+/**
+ * Este metodo obtiene el promedio de la distacia maxima y minima
+ * @param vectorsMaxDistance vector con todas las distancias maximas 
+ * @param vectorsMinDistance vector con todas las distancias minimas
+ * @param averageMaxDistance promedio de la distacia maxima
+ * @param averageMinDistance promedio de la distancia minima
+ */
+void averageDistance(
+    std::vector< double > vectorsMaxDistance,
+    std::vector< double > vectorsMinDistance,
+    double& averageMaxDistance, 
+    double& averageMinDistance){
+
+    double averageMaxTemporary;
+    double averageMinTemporary;
+
+    for (int i = 0; i < vectorsMaxDistance.size(); ++i)
+    {
+      averageMaxTemporary += vectorsMaxDistance[i];
+      averageMinTemporary += vectorsMinDistance[i];
+    }
+
+    averageMaxTemporary = averageMaxTemporary/vectorsMaxDistance.size();
+    averageMinTemporary = averageMinTemporary/vectorsMinDistance.size();
+
+    averageMaxDistance = averageMaxTemporary;
+    averageMinDistance = averageMinTemporary;
+
+}
+
+
+
+void testPoints(
+    double averageMaxDistance,
+    double averageMinDistance,
+    std::vector< cv::Mat > vectorsDescriptors
+    //std::vector< cv::KeyPoint > & vectorButterfly,
+    //std::vector< cv::KeyPoint > & vectorNoButterfly
+    ){
+
+    std::string path = "/media/will/Data/Database_of_Monarch_Butterflies/pathTest.txt";
+    std::vector<std::string> directiones;
+
+    //lee el path donde estan las direciones.
+    readPathTrain(path,directiones);
+
+    for (int i = 0; i < directiones.size(); ++i)
+    {
+      std::cout << directiones[i] << "\n";
+    }
+    //
+    //
+
+    std::vector<cv::Mat> images; 
+    std::vector<cv::Mat> imagesMask;
+
+    //lee las imagenes de originales y las mascaras
+    readImage(directiones,images,imagesMask);
+
+    for (int i = 0; i < images.size(); ++i)
+    {
+        cv::Mat image = images[i];
+        cv::Mat imageMask = imagesMask[i];
+
+        std::vector<int> vectorButterfly;
+        std::vector<int> vectorNoButterfly;
+        std::vector< cv::KeyPoint > Butterfly;
+        //************************************************
+        //************************************************
+        //************************************************
+        //Detectar los puntos
+        //Vector para los puntos de la imagen original y la mascara
+        std::vector<cv::KeyPoint> keypoints1;
+        //llamar a la funcion de detectar los puntos
+        detectedPoint(image, keypoints1);
+        
+        //************************************************
+        //************************************************
+        //************************************************
+        //Descriptores
+        //llamar a la funcion de descriptores.
+        cv::Mat descriptors1;
+        createDescriptor(image, keypoints1, descriptors1);
+        
+
+        //************************************************
+        //************************************************
+        //************************************************
+        //FLAN y descriptor
+        //vector con las coincidencias 
+        std::vector< cv::DMatch > matches;
+        std::vector< cv::DMatch > good_matches;
+        std::vector< cv::DMatch > bad_matches;
+
+        for (int j = 0; j < vectorsDescriptors.size(); ++j)
+        {
+          cv::Mat trainDescriptors = vectorsDescriptors[j];
+
+          cv::FlannBasedMatcher matcher;
+
+          //obtine los match
+          matcher.match( descriptors1, trainDescriptors, matches );
+
+          //obtengo las coincidencias que realmente realizan los maches cumpliendo entre el rango establecido
+          for( int i = 0; i < descriptors1.rows; i++ )
+          { 
+            if( matches[i].distance <= cv::max(2*averageMinDistance, 0.002) ){ 
+              good_matches.push_back(matches[i]);
+              bool flag= false;
+              for (int k = 0; k < vectorButterfly.size(); ++k)
+              {
+                if (i!=vectorButterfly.at(k))
+                {
+                  flag = false;
+                }
+                else{
+                  flag = true;
+                  break;
+                }
+              }
+              if (!flag)
+              {
+                vectorButterfly.push_back(i);
+              }
+            }
+            else{
+              bad_matches.push_back( matches[i]);
+              bool flag= false;
+              for (int k = 0; k < vectorNoButterfly.size(); ++k)
+              {
+                if (i!=vectorNoButterfly.at(k))
+                {
+                  flag = false;
+                }
+                else{
+                  flag = true;
+                  break;
+                }
+              }
+              if (!flag)
+              {
+                vectorNoButterfly.push_back(i);
+              }
+
+            }
+          }
+        }// fin de los maches del descriptor
+
+
+        /*for (int i = 0; i < vectorButterfly.size(); ++i)
+        {
+          std::cout << "La posicion es: " <<vectorButterfly[i] << " ";
+        }
+        std::cout << "*********************" << "\n";
+        std::cout << "*********************" << "\n";
+        std::cout << "*********************" << "\n";*/
+        
+       for (int i = 0; i < vectorButterfly.size(); ++i)
+       {
+          int position = vectorButterfly.at(i); 
+          Butterfly.push_back(keypoints1[position]);
+       }
+
+       std::cout << "el largo es  " <<Butterfly.size() << "\n";
+       //
+       //***************************************************************
+       //***************************************************************
+       //***************************************************************
+       //***************************************************************
+       //ACA SIGUE SU CODIGO POR LA IMAGEN CARGADA YA
+       //EL VECTOR BUTTERFLY ES EL QUE TIENE LOS SUPUESTOS PUNTOS QUE SON MARIPOSA
+       //LISTOS PARA VOTAR PARA CADA IMAGEN
+       // ESOS PUNTOS SON POR CADA IMAGEN QUE SUBE DE TEST
+       // NO SE DONDE ESPECIFICAMENTE DONDE ESTAN UBICADOS PERO CREO QUE NO SE ESTA TAN PERDIDOS.
        
 
+       cv::waitKey(2000);
+    }
+}
+/*  cv::Mat&       image,
+  std::vector<cv::KeyPoint>& image_detected_keypoints)
+{
+  int i;
+  int contIn=0;
+  int contOut=0;
+  for (i=0; i<vector.size(); i++){
+    cv::KeyPoint keyPoint = vector.at(i);
+    int pixel = image.at<uchar>(cv::keypoint.pt().y, cv::keypoint.pt().x);
+    if (pixel>0){
+      contIn++;
+    }
+    else{
+      contOut++;
+    }
+  }
+  std::cout << "Asserted points: " << contIn << std::endl;  
+  std::cout << "Wrong points: " << contOut << std::endl;  
+}*/
+
+
+int main(int argc, char** argv){
+
+    std::vector< double > vectorsMaxDistance;
+    std::vector< double > vectorsMinDistance;
+    std::vector< cv::Mat > vectorsDescriptors;
+    std::vector< std::vector< cv::DMatch > > vectorsGoodMatches;
+    std::vector< std::vector< cv::DMatch > > vectorsBadMatches;
+
+    train(vectorsMaxDistance, vectorsMinDistance, vectorsDescriptors, vectorsGoodMatches, vectorsBadMatches);
+
+    /*for (int j = 0; j < vectorsGoodMatches.size(); ++j)
+    {
+      std::cout <<  "---------------------------------------------------------------------------------------------" << "\n" ;
+      std::vector< cv::DMatch > good_matches = vectorsGoodMatches[j];
+      for( int i = 0; i < (int)good_matches.size(); i++ )
+        { printf( "-- G [%d] Puntos de la imagen: %d  -- Puntos de la mascara: %d -- Distancia: %f \n", 
+          i, good_matches[i].queryIdx, good_matches[i].trainIdx, good_matches[i].distance); }
+    }*/
+
+    // obtine el promedio de la distncias del entrenamiento para obtener el umbral.
+    double averageMaxDistance;
+    double averageMinDistance; 
+    averageDistance(vectorsMaxDistance, vectorsMinDistance, averageMaxDistance, averageMinDistance);
+    testPoints(averageMaxDistance,averageMinDistance,vectorsDescriptors);
+    
+  return 0;
+}
+
+//for (int i = 0; i < images.size(); ++i)
+    //{
+        
         //************************************************
         //************************************************
         //*************************************************
         //Para la segmentacion de partes
         
-       cv::Mat src = image;
-       
-       for( int x = 0; x < src.rows; x++ ) {
-          for( int y = 0; y < src.cols; y++ ) {
-              if ( src.at<cv::Vec3b>(x, y) == cv::Vec3b(255,255,255) ) {
-                src.at<cv::Vec3b>(x, y)[0] = 0;
-                src.at<cv::Vec3b>(x, y)[1] = 0;
-                src.at<cv::Vec3b>(x, y)[2] = 0;
-              }
-            }
-        }
+       /*cv::Mat src = imageMask;
+
         // Show output image
         imshow("Black Background Image", src);
         // Create a kernel that we will use for accuting/sharpening our image
@@ -280,11 +555,12 @@ int main(int argc, char** argv){
         cv::filter2D(sharp, imgLaplacian, CV_32F, kernel);
         src.convertTo(sharp, CV_32F);
         cv::Mat imgResult = sharp - imgLaplacian;
+  
         // convert back to 8bits gray scale
         imgResult.convertTo(imgResult, CV_8UC3);
         imgLaplacian.convertTo(imgLaplacian, CV_8UC3);
         // imshow( "Laplace Filtered Image", imgLaplacian );
-        //cv::imshow( "New Sharped Image", imgResult );
+        cv::imshow( "New Sharped Image", imgResult );
         src = imgResult; // copy back
         // Create binary image from source image
         cv::Mat bw;
@@ -293,7 +569,9 @@ int main(int argc, char** argv){
         cv::imshow("Binary Image", bw);
 
         // Perform the distance transform algorithm
-        /*cv::Mat dist;
+  
+  //*****NO FUNCIONA DESDE AQUI
+        cv::Mat dist;
         cv::distanceTransform(bw, dist, CV_DIST_L2, 3);
         // Normalize the distance image for range = {0.0, 1.0}
         // so we can visualize and threshold it
@@ -320,7 +598,7 @@ int main(int argc, char** argv){
             cv::drawContours(markers, contours, static_cast<int>(i), cv::Scalar::all(static_cast<int>(i)+1), -1);
         // Draw the background marker
         cv::circle(markers, cv::Point(5,5), 3, CV_RGB(255,255,255), -1);
-        cv::imshow("Markers", markers*10000);
+        //cv::imshow("Markers", markers*10000);
         // Perform the watershed algorithm
         cv::watershed(src, markers);
         cv::Mat mark = cv::Mat::zeros(markers.size(), CV_8UC1);
@@ -353,20 +631,9 @@ int main(int argc, char** argv){
             }
         }
         // Visualize the final image
-    imshow("Final Result", dst);
+        imshow("Final Result", dst);
+  //****No FUNCIONA HASTA AQUI
         */
         
-        cv::waitKey(2000);
-    }
-  return 0;
-}
-
-/*for (int i = 0; i < contours.size(); ++i)
-        {
-          std::cout <<  "*************************************" << "\n" ;
-          std::vector<cv::Point> v = contours[i];
-          for (int j = 0; j < v.size(); ++j)
-          {
-            std::cout <<  "punto x es: "<< v[j].x <<  ", punto y es: "<< v[j].y << "\n" ;
-          }
-        }*/
+        //cv::waitKey(2000);
+    //}

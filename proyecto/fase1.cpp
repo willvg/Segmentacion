@@ -522,6 +522,7 @@ void testPoints(
         std::vector<int> vectorButterfly;
         std::vector<int> vectorNoButterfly;
         std::vector< cv::KeyPoint > Butterfly;
+	std::vector< cv::KeyPoint > noButterfly;
         //************************************************
         //************************************************
         //************************************************
@@ -616,6 +617,11 @@ void testPoints(
        {
           int position = vectorNoButterfly.at(i); 
           Butterfly.push_back(keypoints1[position]);
+       }
+       for (int i = 0; i < vectorButterfly.size(); ++i)
+       {
+          int position = vectorButterfly.at(i); 
+          noButterfly.push_back(keypoints1[position]);
        }
 
        std::cout << "el largo es  " <<Butterfly.size() << "\n";

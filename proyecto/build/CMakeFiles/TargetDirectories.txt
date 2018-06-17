@@ -1,0 +1,7 @@
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/install.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/list_install_components.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/rebuild_cache.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/proyecto.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/install/strip.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/install/local.dir
+/home/jonatan/TEC/Imagenes (no git)/Segmentacion/proyecto/build/CMakeFiles/edit_cache.dir

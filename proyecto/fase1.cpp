@@ -10,6 +10,7 @@
 #include <ctime>
 #include <chrono>
 */
+#include <highgui.h>
 #include <opencv2/opencv.hpp>
 #include "opencv2/core/core.hpp"
 #include "opencv2/features2d/features2d.hpp"
@@ -175,25 +176,48 @@ void readImage(
     }
 }
 
-void printResults(
+//code based on https://github.com/daviddoria/Examples/blob/master/c%2B%2B/OpenCV/MeanShiftSegmentation/MeanShiftSegmentation.cxx
+void floodFillPostprocess( cv::Mat& img, const cv::Scalar& colorDiff=cv::Scalar::all(1) )
+{
+    CV_Assert( !img.empty() );
+    cv::RNG rng = cv::theRNG();
+    cv::Mat mask( img.rows+2, img.cols+2, CV_8UC1, cv::Scalar::all(0) );
+    for( int y = 0; y < img.rows; y++ )
+    {
+        for( int x = 0; x < img.cols; x++ )
+        {
+            if( mask.at<uchar>(y+1, x+1) == 0 )
+            {
+                cv::Scalar newVal( rng(256), rng(256), rng(256) );
+                floodFill( img, mask, cv::Point(x,y), newVal, 0, colorDiff, colorDiff );
+            }
+        }
+    }
+}
+
+//code based on https://github.com/daviddoria/Examples/blob/master/c%2B%2B/OpenCV/MeanShiftSegmentation/MeanShiftSegmentation.cxx
+void meanShiftSegmentation(
 	cv::Mat&		   image,
+	cv::Mat&		   segmented_image)
+{
+	int spatialRad, colorRad, maxPyrLevel;
+	spatialRad = 10;
+        colorRad = 10;
+        maxPyrLevel = 1;
+
+	pyrMeanShiftFiltering(image, segmented_image, spatialRad, colorRad, maxPyrLevel );
+	floodFillPostprocess( segmented_image, cv::Scalar::all(2) );
+}
+
+void drawResults(
+	cv::Mat&		   segmented_image,
+	cv::Mat&		   result_image,
 	std::vector<cv::KeyPoint>& image_detected_keypoints)
 {
 	int i;
-	int contIn=0;
-	int contOut=0;
-	for (i=0; i<vector.size(); i++){
-		cv::KeyPoint keyPoint = vector.at(i);
-		int pixel = image.at<uchar>(keypoint.pt().y, keypoint.pt().x);
-		if (pixel>0){
-			contIn++;
-		}
-		else{
-			contOut++;
-		}
+	for(i=0; i<std::vector.size(); i++){
+		cv::KeyPoint keypoint = image_detected_keypoints.at(i);
 	}
-	std::cout << "Asserted points: " << contIn << std::endl;  
-	std::cout << "Wrong points: " << contOut << std::endl;  
 }
 
 
@@ -215,205 +239,20 @@ int main(int argc, char** argv){
     std::vector<cv::Mat> images; 
     std::vector<cv::Mat> imagesMask;
 
-    //lee las imagenes de originales y las mascaras
+    //lee las imagenes de entrenamiento originales y las mascaras
     readImage(directiones,images,imagesMask);
         
     for (int i = 0; i < images.size(); ++i)
     {
         cv::Mat image = images[i];
+	cv::Mat segmented_image;
         cv::Mat imageMask = imagesMask[i];
-        //************************************************
-        //************************************************
-        //*************************************************
-        //Detectar los puntos
-        //Vector para los puntos de la imagen original y la mascara
-        /*std::vector<cv::KeyPoint> keypoints1, keypoints2; coordenada x e y de los puntos mariposa
-        //llamar a la funcion de detectar los puntos
-        detectedPoints(image,imageMask, keypoints1, keypoints2);
-        
-        
-        //************************************************
-        //************************************************
-        //*************************************************
-        //Descriptores
-        //llamar a la funcion de descriptores.
-        cv::Mat descriptors1, descriptors2;
-        createDescriptor(image, keypoints1, descriptors1);
-        createDescriptor(imageMask, keypoints2, descriptors2);
-        
-
-        //************************************************
-        //************************************************
-        //*************************************************
-        //FLAN y descriptor
-        //vector con las coincidencias 
-        std::vector< cv::DMatch > matches;
-        double max_dist = 0; double min_dist = 100;
-        
-        //vector con los maches que realmente conincidieron
-        std::vector< cv::DMatch > good_matches;
-        createFLAN(descriptors1, descriptors2, matches,max_dist, min_dist, good_matches);
-
-        printf("-- Maxima distancia : %f \n", max_dist );
-        printf("-- Minima dist : %f \n", min_dist );
-
-        //dibuja las coincidencias
-        cv::Mat img_matches;
-        cv::drawMatches( image, keypoints1, imageMask, keypoints2,
-                     good_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
-                     std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
-        //mustra las conincidencias
-        cv::imshow( "Coincidencias que cumplen", img_matches );
-
-        for( int i = 0; i < (int)good_matches.size(); i++ )
-        { printf( "-- G [%d] Puntos de la imagen: %d  -- Puntos de la mascara: %d -- Distancia: %f \n", 
-          i, good_matches[i].queryIdx, good_matches[i].trainIdx, good_matches[i].distance); }
-        
-        //************************************************
-        //************************************************
-        //*************************************************
-        //Para encontrar los contornos
-        cv::Mat gray=image;
-        // vector de los contornos   
-        std::vector<std::vector<cv::Point> > contours;
-            std::vector<cv::Vec4i> hierarchy;
-        findContoursImage(image, contours, hierarchy);
-        std::cout <<  "---------------------------------------------------------------------------------------------" << "\n" ;
-        
-        
-        /// pintar el contorno
-        cv::Mat drawing = cv::Mat::zeros( gray.size(), CV_8UC3 );
-        for( int i = 0; i< contours.size(); i++ )
-        {
-            cv::Scalar color = cv::Scalar( 255, 255, 255 );
-
-
-
-            cv::drawContours( drawing, contours, i, color, 1, 8, hierarchy, 0, cv::Point() );
-        }     
-     
-        cv::imshow( "Resultado del contorno", drawing );
-        
-        std::cout <<  descriptors1.rows << " " << descriptors1.cols<<"\n" ;
-        */
        
-
-        //************************************************
-        //************************************************
-        //*************************************************
-        //Para la segmentacion de partes
-        
-       cv::Mat src = imageMask;
-
-        // Show output image
-        imshow("Black Background Image", src);
-        // Create a kernel that we will use for accuting/sharpening our image
-        cv::Mat kernel = (cv::Mat_<float>(3,3) <<
-                1,  1, 1,
-                1, -8, 1,
-                1,  1, 1); // an approximation of second derivative, a quite strong kernel
-        // do the laplacian filtering as it is
-        // well, we need to convert everything in something more deeper then CV_8U
-        // because the kernel has some negative values,
-        // and we can expect in general to have a Laplacian image with negative values
-        // BUT a 8bits unsigned int (the one we are working with) can contain values from 0 to 255
-        // so the possible negative number will be truncated
-        cv::Mat imgLaplacian;
-        cv::Mat sharp = src; // copy source image to another temporary one
-        cv::filter2D(sharp, imgLaplacian, CV_32F, kernel);
-        src.convertTo(sharp, CV_32F);
-        cv::Mat imgResult = sharp - imgLaplacian;
-	
-        // convert back to 8bits gray scale
-        imgResult.convertTo(imgResult, CV_8UC3);
-        imgLaplacian.convertTo(imgLaplacian, CV_8UC3);
-        // imshow( "Laplace Filtered Image", imgLaplacian );
-        cv::imshow( "New Sharped Image", imgResult );
-        src = imgResult; // copy back
-        // Create binary image from source image
-        cv::Mat bw;
-        cv::cvtColor(src, bw, CV_BGR2GRAY);
-        cv::threshold(bw, bw, 40, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
-        cv::imshow("Binary Image", bw);
-
-        // Perform the distance transform algorithm
-	
-	//*****NO FUNCIONA DESDE AQUI
-        cv::Mat dist;
-        cv::distanceTransform(bw, dist, CV_DIST_L2, 3);
-        // Normalize the distance image for range = {0.0, 1.0}
-        // so we can visualize and threshold it
-        cv::normalize(dist, dist, 0, 1., cv::NORM_MINMAX);
-        cv::imshow("Distance Transform Image", dist);
-        // Threshold to obtain the peaks
-        // This will be the markers for the foreground objects
-        cv::threshold(dist, dist, .4, 1., CV_THRESH_BINARY);
-        // Dilate a bit the dist image
-        cv::Mat kernel1 = cv::Mat::ones(3, 3, CV_8UC1);
-        cv::dilate(dist, dist, kernel1);
-        cv::imshow("Peaks", dist);
-        // Create the CV_8U version of the distance image
-        // It is needed for findContours()
-        cv::Mat dist_8u;
-        dist.convertTo(dist_8u, CV_8U);
-        // Find total markers
-        std::vector<std::vector<cv::Point> > contours;
-        cv::findContours(dist_8u, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-        // Create the marker image for the watershed algorithm
-        cv::Mat markers = cv::Mat::zeros(dist.size(), CV_32SC1);
-        // Draw the foreground markers
-        for (size_t i = 0; i < contours.size(); i++)
-            cv::drawContours(markers, contours, static_cast<int>(i), cv::Scalar::all(static_cast<int>(i)+1), -1);
-        // Draw the background marker
-        cv::circle(markers, cv::Point(5,5), 3, CV_RGB(255,255,255), -1);
-        //cv::imshow("Markers", markers*10000);
-        // Perform the watershed algorithm
-        cv::watershed(src, markers);
-        cv::Mat mark = cv::Mat::zeros(markers.size(), CV_8UC1);
-        markers.convertTo(mark, CV_8UC1);
-        cv::bitwise_not(mark, mark);
-    //    imshow("Markers_v2", mark); // uncomment this if you want to see how the mark
-                                      // image looks like at that point
-        // Generate random colors
-        std::vector<cv::Vec3b> colors;
-        for (size_t i = 0; i < contours.size(); i++)
-        {
-            int b = cv::theRNG().uniform(0, 255);
-            int g = cv::theRNG().uniform(0, 255);
-            int r = cv::theRNG().uniform(0, 255);
-            colors.push_back(cv::Vec3b((uchar)b, (uchar)g, (uchar)r));
-        }
-        // Create the result image
-        cv::Mat dst = cv::Mat::zeros(markers.size(), CV_8UC3);
-
-        // Fill labeled objects with random colors
-        for (int i = 0; i < markers.rows; i++)
-        {
-            for (int j = 0; j < markers.cols; j++)
-            {
-                int index = markers.at<int>(i,j);
-                if (index > 0 && index <= static_cast<int>(contours.size()))
-                    dst.at<cv::Vec3b>(i,j) = colors[index-1];
-                else
-                    dst.at<cv::Vec3b>(i,j) = cv::Vec3b(0,0,0);
-            }
-        }
-        // Visualize the final image
-        imshow("Final Result", dst);
-	//****No FUNCIONA HASTA AQUI
-        
+	//aqui se realiza el entrenamiento
+	meanShiftSegmentation(image, segmented_image);
+	imshow("segmentation", segmented_image);
+       
         cv::waitKey(2000);
     }
   return 0;
 }
-
-/*for (int i = 0; i < contours.size(); ++i)
-        {
-          std::cout <<  "*************************************" << "\n" ;
-          std::vector<cv::Point> v = contours[i];
-          for (int j = 0; j < v.size(); ++j)
-          {
-            std::cout <<  "punto x es: "<< v[j].x <<  ", punto y es: "<< v[j].y << "\n" ;
-          }
-        }*/
